@@ -1,0 +1,11 @@
+google-generativeai==0.3.2
+youtube-transcript-api==0.6.1
+google-api-python-client==2.108.0
+python-dotenv==1.0.0
+langchain==0.1.0
+langsmith==0.0.69
+textblob==0.17.1
+pytest==7.4.3
+black==23.11.0
+isort==5.12.0
+flake8==6.1.0
