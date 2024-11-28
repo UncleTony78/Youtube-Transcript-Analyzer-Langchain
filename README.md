@@ -82,11 +82,6 @@
    LOG_LEVEL=INFO
    ```
 
-   ⚠️ **Security Note**: 
-   - Never commit the `.env` file to version control
-   - Keep your API keys secure and rotate them regularly
-   - Use different API keys for development and production
-
 ### Quick Test
 
 1. **Run the Test Pipeline**
@@ -206,36 +201,158 @@ print(response['answer'])
 
 ### Contributing Guidelines
 
-1. Fork the repository
-2. Create your feature branch: `git checkout -b feature/amazing-feature`
-3. Follow the code style guidelines
-4. Write tests for new features
-5. Update documentation as needed
-6. Commit your changes: `git commit -m 'Add amazing feature'`
-7. Push to the branch: `git push origin feature/amazing-feature`
-8. Open a Pull Request
+We love your input! We want to make contributing as easy and transparent as possible, whether it's:
+
+- Reporting a bug
+- Discussing the current state of the code
+- Submitting a fix
+- Proposing new features
+- Becoming a maintainer
+
+#### Development Process
+
+1. Fork the repo and create your branch:
+   ```bash
+   # Clone your fork
+   git clone https://github.com/<your-username>/Youtube-Transcript-Analyzer-Langchain.git
+   
+   # Create a feature branch
+   git checkout -b feature/my-awesome-feature
+   # or for bugfixes
+   git checkout -b fix/issue-description
+   ```
+
+2. Set up development environment:
+   ```bash
+   # Create and activate virtual environment
+   python -m venv venv
+   source venv/bin/activate  # or `venv\Scripts\activate` on Windows
+   
+   # Install development dependencies
+   pip install -r requirements-dev.txt
+   ```
+
+3. Make your changes:
+   - Follow our coding style (Black + isort)
+   - Add or update tests as needed
+   - Update documentation to reflect your changes
+   - Add your changes to CHANGELOG.md under [Unreleased]
+
+4. Test your changes:
+   ```bash
+   # Run tests
+   pytest
+   
+   # Run linters
+   black .
+   isort .
+   flake8
+   ```
+
+5. Commit your changes:
+   ```bash
+   git add .
+   git commit -m "feat: add awesome new feature"
+   git push origin feature/my-awesome-feature
+   ```
+
+6. Open a Pull Request:
+   - Fill in the provided PR template
+   - Link any relevant issues
+   - Provide clear description of your changes
+   - Request review from maintainers
+
+#### Code Style Guidelines
+
+- Use [Black](https://github.com/psf/black) for code formatting
+- Sort imports with [isort](https://pycqa.github.io/isort/)
+- Follow [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html)
+- Write meaningful commit messages following [Conventional Commits](https://www.conventionalcommits.org/)
+- Document your code using Google-style docstrings
 
 ## Error Handling
 
-The package includes comprehensive error handling for:
+Our error handling system is designed to provide robust, informative, and recoverable error management across all operations.
 
-### API and Network
-- Missing/invalid API keys
-- Network connectivity issues
-- Rate limiting
-- Failed API requests
+### API & Network Layer
 
-### Data Processing
-- Invalid video URLs
-- Missing transcripts
-- Language processing errors
-- Vector database operations
+#### Request Management
+- Automatic retry with exponential backoff for transient failures
+- Rate limit handling with smart throttling
+- Connection pooling and timeout management
+- Detailed error reporting with request/response context
 
-### Runtime
-- Memory management
-- Concurrent operations
-- Resource cleanup
-- Chat interface errors
+#### Authentication & Authorization
+- Graceful handling of expired/invalid credentials
+- Automatic token refresh mechanisms
+- Clear error messages for permission issues
+- Fallback mechanisms for API unavailability
+
+### Data Processing Layer
+
+#### Input Validation
+- Comprehensive URL format validation
+- Content type and size verification
+- Language support checking
+- Metadata completeness validation
+
+#### Content Processing
+- Transcript availability checks
+- Language detection and translation fallbacks
+- Chunk size optimization
+- Memory usage monitoring and management
+
+#### Vector Operations
+- Index existence verification
+- Embedding dimension validation
+- Query format validation
+- Results post-processing and filtering
+
+### Runtime Management
+
+#### Resource Optimization
+- Memory usage monitoring
+- Garbage collection optimization
+- Connection pool management
+- Cache invalidation strategies
+
+#### Concurrent Operations
+- Thread safety mechanisms
+- Deadlock prevention
+- Resource contention handling
+- Queue management for parallel processing
+
+#### System Integration
+- Clean process termination
+- Resource cleanup on shutdown
+- State persistence
+- Recovery from partial failures
+
+#### User Interface
+- Informative error messages
+- Progress indication
+- Operation cancellation support
+- Session management
+
+### Error Recovery Strategies
+
+1. **Automatic Recovery**
+   - Retry mechanisms for transient failures
+   - Fallback options for critical operations
+   - State restoration capabilities
+   - Alternative service routing
+
+2. **Manual Intervention**
+   - Clear error documentation
+   - Troubleshooting guides
+   - Support contact information
+   - Debug log access
+
+3. **Monitoring & Logging**
+   - Structured error logging
+   - Performance metrics tracking
+   - Usage statistics
+   - Health checks and alerts
 
 ## License
 
