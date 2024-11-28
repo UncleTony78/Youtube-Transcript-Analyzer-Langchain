@@ -82,10 +82,8 @@ class VideoInsightEngine:
             Video Context: {video_context}
             Segment: {segment}
             
-            Extract exactly 3 golden nuggets in this format:
+            Extract golden nuggets in this format:
             1. [Nugget Title]: [Brief explanation]
-            2. [Nugget Title]: [Brief explanation]
-            3. [Nugget Title]: [Brief explanation]
             
             For each nugget, also provide:
             - Relevance (Why this matters)
