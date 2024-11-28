@@ -4,9 +4,9 @@ Provides high-level functions for video analysis and interaction.
 """
 
 from typing import Dict, Any, List
-from .insight_engine import VideoInsightEngine
-from .transcript_service import YouTubeService
-from .analysis_utils import format_timestamp, deduplicate_insights
+from insight_engine import VideoInsightEngine
+from transcript_service import YouTubeService
+from analysis_utils import format_timestamp, deduplicate_insights
 import json
 
 class VideoAnalyzer:
