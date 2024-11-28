@@ -142,6 +142,191 @@ response = chat_chain({
 print(response['answer'])
 ```
 
+## 🛠️ Component Setup Guide
+
+### LangChain Setup
+
+1. **Install LangChain**
+   ```bash
+   pip install langchain langchain-google-genai
+   ```
+
+2. **Configure LangChain**
+   ```python
+   from langchain_google_genai import ChatGoogleGenerativeAI
+   from dotenv import load_dotenv
+   import os
+
+   # Load environment variables
+   load_dotenv()
+
+   # Initialize LLM
+   llm = ChatGoogleGenerativeAI(
+       model="gemini-pro",
+       temperature=0.7,
+       convert_system_message_to_human=True
+   )
+   ```
+
+### LangSmith Integration
+
+1. **Sign Up for LangSmith**
+   - Visit [LangSmith](https://smith.langchain.com/)
+   - Create an account and get your API key
+   - Add API key to your `.env` file
+
+2. **Enable Tracing**
+   ```python
+   import os
+   from langsmith.run_helpers import traceable
+
+   # Configure LangSmith
+   os.environ["LANGCHAIN_TRACING_V2"] = "true"
+   os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
+   os.environ["LANGCHAIN_API_KEY"] = os.getenv('LANGCHAIN_API_KEY')
+   os.environ["LANGCHAIN_PROJECT"] = os.getenv('LANGCHAIN_PROJECT')
+
+   # Use the @traceable decorator for function tracking
+   @traceable(name="my_function")
+   def my_function():
+       pass
+   ```
+
+3. **View Traces**
+   - Go to your LangSmith dashboard
+   - Select your project
+   - View traces, debugging info, and performance metrics
+
+### Vector Embeddings Setup
+
+1. **Install Required Packages**
+   ```bash
+   pip install sentence-transformers
+   ```
+
+2. **Initialize Embeddings**
+   ```python
+   from langchain.embeddings import HuggingFaceEmbeddings
+
+   # Initialize embeddings (using a model with 1024 dimensions)
+   embeddings = HuggingFaceEmbeddings(
+       model_name="BAAI/bge-large-en-v1.5"
+   )
+   ```
+
+3. **Generate Embeddings**
+   ```python
+   # Generate embeddings for a text
+   text = "Your text here"
+   embedding = embeddings.embed_query(text)
+
+   # Generate embeddings for documents
+   documents = ["Doc 1", "Doc 2"]
+   doc_embeddings = embeddings.embed_documents(documents)
+   ```
+
+### Pinecone Setup
+
+1. **Create Pinecone Account**
+   - Visit [Pinecone](https://www.pinecone.io/)
+   - Sign up for an account
+   - Create a new project
+   - Get your API key and environment
+
+2. **Install Pinecone**
+   ```bash
+   pip install pinecone-client
+   ```
+
+3. **Create Index**
+   - Go to Pinecone dashboard
+   - Click "Create Index"
+   - Set dimensions to 1024 (matching your embedding model)
+   - Choose metric: "cosine"
+   - Select cloud provider and region
+
+4. **Initialize Pinecone**
+   ```python
+   from pinecone import Pinecone
+
+   # Initialize client
+   pc = Pinecone(api_key=os.getenv('PINECONE_API_KEY'))
+
+   # Connect to index
+   index = pc.Index(os.getenv('PINECONE_INDEX'))
+   ```
+
+5. **Store and Query Vectors**
+   ```python
+   # Store vectors
+   index.upsert(
+       vectors=[{
+           "id": "vec1",
+           "values": embedding,
+           "metadata": {"text": "Original text"}
+       }],
+       namespace="my_namespace"
+   )
+
+   # Query vectors
+   results = index.query(
+       vector=query_embedding,
+       top_k=3,
+       include_values=True,
+       include_metadata=True,
+       namespace="my_namespace"
+   )
+   ```
+
+### Integration Example
+
+```python
+from langchain.vectorstores import Pinecone as LangChainPinecone
+from langchain.chains import ConversationalRetrievalChain
+
+# Create vector store
+vectorstore = LangChainPinecone(
+    index,
+    embeddings,
+    "text"  # text key field in metadata
+)
+
+# Create retriever
+retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+
+# Create chat chain
+chat_chain = ConversationalRetrievalChain.from_llm(
+    llm=llm,
+    retriever=retriever,
+    memory=ConversationBufferMemory(
+        memory_key="chat_history",
+        return_messages=True
+    )
+)
+
+# Use the chain
+response = chat_chain({
+    "question": "What insights can you share about this video?"
+})
+```
+
+### Troubleshooting Tips
+
+1. **Embedding Issues**
+   - Ensure text is properly preprocessed
+   - Check embedding dimensions match Pinecone index
+   - Monitor token limits and batch sizes
+
+2. **Pinecone Connection**
+   - Verify API key and environment
+   - Check index name and namespace
+   - Monitor rate limits and quotas
+
+3. **LangChain Integration**
+   - Enable debug logging
+   - Check chain input/output formats
+   - Monitor memory usage
+
 ## Project Structure
 
 ```
