@@ -57,7 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Better structure
   - Markdown support
 
-## [0.1.0] - 2024-01-09
+## [0.1.0] - 2024-11-28
 
 ### ✨ Added
 - Initial project setup with core functionality

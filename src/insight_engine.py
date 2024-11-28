@@ -40,8 +40,8 @@ class VideoInsightEngine:
         )
         
         # Initialize Pinecone
-        self.pc = Pinecone(api_key="pcsk_BVdV8_JVeQP5AaG3e9jfuqpaRzdB6Cbcpb12dkLrucUmMXZN3G3deauQH7FKZ9uPFqtii")
-        self.index = self.pc.Index("youtube-video-analysis")
+        self.pc = Pinecone(api_key=os.getenv('PINECONE_API_KEY'))
+        self.index = self.pc.Index(os.getenv('PINECONE_INDEX', 'youtube-video-analysis'))
         
         # Initialize text splitter for chunking
         self.text_splitter = RecursiveCharacterTextSplitter(

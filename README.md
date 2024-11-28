@@ -59,23 +59,33 @@
    ```
 
 4. **Environment Setup**
-   Create a `.env` file in the root directory with the following:
+   Create a `.env` file in the root directory with the following variables:
+
    ```env
-   # Required API Keys
+   # Required API Keys (Never commit these to version control!)
    YOUTUBE_API_KEY=your_youtube_api_key
    GOOGLE_API_KEY=your_google_api_key
-   LANGCHAIN_API_KEY=your_langchain_api_key
    PINECONE_API_KEY=your_pinecone_api_key
-   
+   LANGCHAIN_API_KEY=your_langchain_api_key
+
    # LangChain Configuration
    LANGCHAIN_PROJECT=your_project_name
    LANGCHAIN_TRACING_V2=true
    LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
-   
-   # Optional: Vector DB Configuration
-   PINECONE_ENVIRONMENT=your_environment
-   PINECONE_INDEX=your_index_name
+
+   # Pinecone Configuration
+   PINECONE_INDEX=youtube-video-analysis  # or your custom index name
+   PINECONE_ENVIRONMENT=your_environment  # e.g., "gcp-starter"
+
+   # Optional: Development Settings
+   DEBUG=false
+   LOG_LEVEL=INFO
    ```
+
+   ⚠️ **Security Note**: 
+   - Never commit the `.env` file to version control
+   - Keep your API keys secure and rotate them regularly
+   - Use different API keys for development and production
 
 ### Quick Test
 
@@ -141,24 +151,25 @@ print(response['answer'])
 
 ```
 .
-├── src/                        # Source code
+├── src/                           # Source code
+│   ├── __init__.py               # Package initialization
+│   ├── transcript_service.py      # YouTube API and transcript handling
+│   ├── insight_engine.py         # Core analysis engine
+│   ├── analysis_utils.py         # Helper functions and utilities
+│   ├── langchain_processor.py    # LangChain integration
+│   └── main.py                   # Main application logic
+├── tests/                        # Test suite
 │   ├── __init__.py
-│   ├── transcript_service.py   # YouTube API integration
-│   ├── insight_engine.py      # Core analysis engine
-│   ├── analysis_utils.py      # Helper functions
-│   └── test_pipeline.py       # Testing pipeline
-├── tests/                     # Test suite
-│   ├── __init__.py
-│   └── test_analysis.py
-├── docs/                      # Documentation
-│   └── api.md                 # API documentation
-├── examples/                  # Usage examples
-│   └── basic_analysis.py
-├── README.md                  # This file
-├── CHANGELOG.md              # Version history
-├── requirements.txt          # Dependencies
-├── setup.py                  # Package setup
-└── .env                      # Environment variables
+│   └── test_transcript_service.py # Service unit tests
+├── analyze_video.py             # Video analysis script
+├── run_analysis.py             # Analysis execution script
+├── test_pipeline.py            # Integration test pipeline
+├── setup.py                    # Package setup and metadata
+├── requirements.txt            # Project dependencies
+├── .env                        # Environment configuration
+├── LICENSE                     # MIT License
+├── README.md                   # Project documentation
+└── CHANGELOG.md               # Version history
 ```
 
 ## Development
