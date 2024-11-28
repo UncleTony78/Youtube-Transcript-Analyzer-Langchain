@@ -1,4 +1,4 @@
-# Changelog
+# 📝 Changelog
 
 All notable changes to this project will be documented in this file.
 
@@ -7,12 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-- Modified golden nuggets extraction to be more flexible (removed fixed 3-nugget limit)
+### ✨ Added
+- Vector similarity search functionality for semantic content retrieval
+  - Efficient content discovery based on natural language queries
+  - Relevance scoring and ranking
+  - Timestamp-aware results
+- Interactive chat interface for video content Q&A
+  - Context-aware responses
+  - Natural language understanding
+  - Historical context retention
+- Comprehensive test pipeline (test_pipeline.py)
+  - End-to-end functionality demonstration
+  - Sample video analysis
+  - Performance metrics
+- Enhanced error handling
+  - Vector database operations
+  - Chat interface interactions
+  - API rate limiting management
+
+### 🔄 Changed
+- Modified golden nuggets extraction
+  - Removed fixed 3-nugget limit
+  - Dynamic content-based extraction
+  - Improved relevance scoring
+- Updated code organization
+  - Better modularity
+  - Cleaner interfaces
+  - Improved type hints
+- Enhanced documentation
+  - Detailed setup instructions
+  - Advanced usage examples
+  - API documentation
+- Optimized transcript processing
+  - Better chunk management
+  - Improved memory usage
+  - Faster processing times
+
+### 🐛 Fixed
+- Timestamp formatting in search results
+  - Consistent format across outputs
+  - Better readability
+  - Time zone handling
+- Error handling in vector operations
+  - Better error messages
+  - Graceful fallbacks
+  - Resource cleanup
+- Chat interface response formatting
+  - Improved readability
+  - Better structure
+  - Markdown support
 
 ## [0.1.0] - 2024-01-09
 
-### Added
+### ✨ Added
 - Initial project setup with core functionality
 - VideoInsightEngine implementation
   - AI-powered video content analysis
@@ -34,12 +81,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - LangChain for processing
   - LangSmith for tracing
 
-### Dependencies
+### 📦 Dependencies
 - google-generativeai>=0.3.0
+  - Core AI functionality
+  - Natural language processing
 - langchain>=0.1.0
+  - Chain management
+  - Prompt engineering
 - pinecone-client>=2.2.4
+  - Vector storage
+  - Similarity search
 - youtube-transcript-api>=0.6.1
+  - Transcript retrieval
+  - Language detection
 - textblob>=0.17.1
+  - Text processing
+  - Sentiment analysis
 
 [Unreleased]: https://github.com/UncleTony78/Youtube-Transcript-Analyzer-Langchain/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/UncleTony78/Youtube-Transcript-Analyzer-Langchain/releases/tag/v0.1.0

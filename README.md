@@ -1,120 +1,241 @@
-# 🎥 YouTube Transcript Analysis Tool
+# YouTube Transcript Analysis Tool
 
 > A powerful Python package leveraging AI to extract deep insights from YouTube video transcripts.
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code Style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-## ✨ Features
+## Features
 
-- 🧠 **Context-Aware Analysis**: Understands video context for better insights
-- 📊 **Sentiment Analysis**: Track emotional tone throughout the video
-- 🎯 **Key Points Extraction**: Automatically identify crucial moments
-- 📝 **Smart Summarization**: Generate comprehensive, context-aware summaries
-- 🌍 **Multi-Language Support**: Auto-translation to English
-- 🤖 **Google's Generative AI**: Powered by Gemini Pro
-- 📈 **LangSmith Integration**: Advanced monitoring and tracing
+- **Context-Aware Analysis**: Understands video context for better insights
+- **Sentiment Analysis**: Track emotional tone throughout the video
+- **Key Points Extraction**: Automatically identify crucial moments
+- **Smart Summarization**: Generate comprehensive, context-aware summaries
+- **Vector Search**: Find relevant content using semantic search
+- **Interactive Chat**: Engage in context-aware conversations about the video
+- **Multi-Language Support**: Auto-translation to English
+- **Google's Generative AI**: Powered by Gemini Pro
+- **LangSmith Integration**: Advanced monitoring and tracing
 
-## 🚀 Quick Start
+## Getting Started
 
-```bash
-# Clone the repository
-git clone https://github.com/UncleTony78/Youtube-Transcript-Analyzer-Langchain.git
-cd Youtube-Transcript-Analyzer-Langchain
+### Prerequisites
 
-# Install dependencies
-pip install -r requirements.txt
-```
+1. **Python Environment**
+   - Python 3.8 or higher
+   - pip (Python package installer)
+   - virtualenv or conda (recommended)
 
-## ⚙️ Environment Setup
+2. **API Keys**
+   - YouTube Data API key
+   - Google API key (for Gemini Pro)
+   - LangChain API key
+   - Pinecone API key
 
-Create a `.env` file in the root directory:
+### Installation
 
-```env
-YOUTUBE_API_KEY=your_youtube_api_key
-GOOGLE_API_KEY=your_google_api_key
-LANGCHAIN_API_KEY=your_langchain_api_key
-LANGCHAIN_PROJECT=soomi-ai
-LANGCHAIN_TRACING_V2=true
-LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
-```
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/UncleTony78/Youtube-Transcript-Analyzer-Langchain.git
+   cd Youtube-Transcript-Analyzer-Langchain
+   ```
 
-## 📖 Usage
+2. **Create Virtual Environment**
+   ```bash
+   # Using virtualenv
+   python -m venv venv
+   
+   # Activate on Windows
+   venv\Scripts\activate
+   
+   # Activate on Unix or MacOS
+   source venv/bin/activate
+   ```
+
+3. **Install Dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Environment Setup**
+   Create a `.env` file in the root directory with the following:
+   ```env
+   # Required API Keys
+   YOUTUBE_API_KEY=your_youtube_api_key
+   GOOGLE_API_KEY=your_google_api_key
+   LANGCHAIN_API_KEY=your_langchain_api_key
+   PINECONE_API_KEY=your_pinecone_api_key
+   
+   # LangChain Configuration
+   LANGCHAIN_PROJECT=your_project_name
+   LANGCHAIN_TRACING_V2=true
+   LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
+   
+   # Optional: Vector DB Configuration
+   PINECONE_ENVIRONMENT=your_environment
+   PINECONE_INDEX=your_index_name
+   ```
+
+### Quick Test
+
+1. **Run the Test Pipeline**
+   ```bash
+   python src/test_pipeline.py
+   ```
+   This will analyze a sample video and demonstrate the tool's capabilities.
+
+## Usage Guide
+
+### Basic Usage
 
 ```python
+from src.insight_engine import VideoInsightEngine
 from src.transcript_service import YouTubeService
-from src.langchain_processor import TranscriptProcessor
 
 # Initialize services
 youtube_service = YouTubeService()
-processor = TranscriptProcessor()
+insight_engine = VideoInsightEngine()
 
 # Analyze a video
 video_url = "https://www.youtube.com/watch?v=your_video_id"
-results = processor.process_transcript(youtube_service.get_video_data(video_url))
 
-# Access results
-print(results['context_analysis'])  # Initial context analysis
-print(results['final_summary'])     # Comprehensive summary
+# Get video data
+video_id = youtube_service.extract_video_id(video_url)
+metadata = youtube_service.get_video_metadata(video_id)
+transcript = youtube_service.get_transcript(video_id)
+
+# Process and analyze
+analysis = insight_engine.analyze_transcript(transcript, metadata)
 ```
 
-## 🏗️ Project Structure
+### Advanced Features
+
+#### Vector Search
+```python
+# Search for specific content
+results = insight_engine.query_video_insights(
+    "What are the main points about...?",
+    video_id=video_id
+)
+
+for result in results:
+    print(f"Content: {result['content']}")
+    print(f"Timestamp: {result['timestamp']}s")
+    print(f"Relevance: {result['score']:.2f}")
+```
+
+#### Interactive Chat
+```python
+# Create chat interface
+chat_chain = insight_engine.create_chat_interface()
+
+# Ask questions about the video
+response = chat_chain({
+    "question": "Can you explain the key concepts discussed in the video?"
+})
+print(response['answer'])
+```
+
+## Project Structure
 
 ```
 .
-├── src/
+├── src/                        # Source code
 │   ├── __init__.py
-│   ├── transcript_service.py    # YouTube API integration
-│   └── langchain_processor.py   # AI processing logic
-├── tests/
+│   ├── transcript_service.py   # YouTube API integration
+│   ├── insight_engine.py      # Core analysis engine
+│   ├── analysis_utils.py      # Helper functions
+│   └── test_pipeline.py       # Testing pipeline
+├── tests/                     # Test suite
 │   ├── __init__.py
-│   └── test_analysis.py        # Test suite
-├── README.md                   # This file
-├── requirements.txt            # Dependencies
-├── setup.py                    # Package setup
-└── .env                       # Environment variables
+│   └── test_analysis.py
+├── docs/                      # Documentation
+│   └── api.md                 # API documentation
+├── examples/                  # Usage examples
+│   └── basic_analysis.py
+├── README.md                  # This file
+├── CHANGELOG.md              # Version history
+├── requirements.txt          # Dependencies
+├── setup.py                  # Package setup
+└── .env                      # Environment variables
 ```
 
-## 🧪 Development
+## Development
 
-1. Clone the repository
-2. Install dependencies: `pip install -r requirements.txt`
-3. Set up environment variables in `.env`
-4. Run tests: `python -m pytest tests/`
+### Setting Up Development Environment
 
-## 🤝 Contributing
+1. **Install Development Dependencies**
+   ```bash
+   pip install -r requirements-dev.txt
+   ```
+
+2. **Install Pre-commit Hooks**
+   ```bash
+   pre-commit install
+   ```
+
+3. **Run Tests**
+   ```bash
+   # Run all tests
+   python -m pytest tests/
+   
+   # Run with coverage
+   python -m pytest --cov=src tests/
+   ```
+
+4. **Code Formatting**
+   ```bash
+   # Format code
+   black src/ tests/
+   
+   # Check style
+   flake8 src/ tests/
+   ```
+
+### Contributing Guidelines
 
 1. Fork the repository
 2. Create your feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
+3. Follow the code style guidelines
+4. Write tests for new features
+5. Update documentation as needed
+6. Commit your changes: `git commit -m 'Add amazing feature'`
+7. Push to the branch: `git push origin feature/amazing-feature`
+8. Open a Pull Request
 
-## 🛡️ Error Handling
+## Error Handling
 
-The package includes robust error handling for:
+The package includes comprehensive error handling for:
+
+### API and Network
 - Missing/invalid API keys
-- Failed transcript retrieval
-- Language processing errors
 - Network connectivity issues
 - Rate limiting
+- Failed API requests
 
-## 🔒 Security
+### Data Processing
+- Invalid video URLs
+- Missing transcripts
+- Language processing errors
+- Vector database operations
 
-- All API keys are managed via environment variables
-- No sensitive data is logged or stored
-- Secure error messages that don't expose system details
+### Runtime
+- Memory management
+- Concurrent operations
+- Resource cleanup
+- Chat interface errors
 
-## 📈 Performance
-
-- Efficient chunk-based processing
-- Smart caching of API responses
-- Optimized for production use
-- Scalable architecture
-
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Google's Generative AI team for Gemini Pro
+- LangChain for the excellent framework
+- Pinecone for vector database services
+- YouTube Data API team
 
 ---
 
