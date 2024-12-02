@@ -3,23 +3,24 @@ Video Insight Engine - Core analysis and processing module.
 Handles video content analysis, storage, and interactive querying.
 """
 
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.chains import LLMChain, ConversationalRetrievalChain
-from langchain.prompts import PromptTemplate
-from langchain.memory import ConversationBufferMemory
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.docstore.document import Document
-from langchain.vectorstores import Pinecone as LangChainPinecone
-from langchain.retrievers import ContextualCompressionRetriever
-from langchain.retrievers.document_compressors import LLMChainExtractor
-from pinecone import Pinecone
 from typing import List, Dict, Any
 import json
 import os
 from dotenv import load_dotenv
 import re
 import uuid
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import Pinecone as LangChainPinecone
+from langchain.retrievers import ParentDocumentRetriever
+from langchain.chains import LLMChain, ConversationalRetrievalChain
+from langchain.prompts import PromptTemplate
+from langchain.memory import ConversationBufferMemory
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.docstore.document import Document
+from langchain.retrievers.document_compressors import LLMChainExtractor
+from pinecone import Pinecone
+import google.generativeai as genai
 
 # Load environment variables
 load_dotenv()
@@ -271,3 +272,60 @@ class VideoInsightEngine:
             memory=self.memory,
             combine_docs_chain_kwargs={"prompt": qa_prompt}
         )
+
+    def generate_insights(self, transcript: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Generate insights from the video transcript.
+        
+        Args:
+            transcript: List of transcript segments
+            
+        Returns:
+            List of insights with titles, explanations, and timestamps
+        """
+        # Combine transcript segments into full text
+        full_text = " ".join([segment['text'] for segment in transcript])
+        
+        # Create prompt for insight generation
+        prompt = PromptTemplate(
+            template="""You are an AI trained to analyze video transcripts and extract valuable insights.
+            
+            Analyze this transcript and identify the key insights:
+            
+            {text}
+            
+            Generate 3-5 key insights. For each insight, provide:
+            1. A clear and concise title
+            2. A detailed explanation
+            3. Why it's important or valuable
+            4. The relevant context from the transcript
+            
+            Format your response as a JSON array of objects with these fields:
+            - title: string
+            - explanation: string
+            - importance: string
+            - context: string
+            
+            Focus on the most significant and actionable insights.""",
+            input_variables=["text"]
+        )
+        
+        # Create chain for insight generation
+        chain = LLMChain(llm=self.llm, prompt=prompt)
+        
+        # Generate insights
+        response = chain.run(text=full_text)
+        
+        # Clean and parse response
+        try:
+            cleaned_response = self._clean_json_response(response)
+            insights = json.loads(cleaned_response)
+            return insights
+        except json.JSONDecodeError:
+            # If parsing fails, return a basic insight
+            return [{
+                "title": "Transcript Analysis",
+                "explanation": "The transcript has been processed but insights could not be structured properly.",
+                "importance": "Further analysis may be needed.",
+                "context": "Full transcript available in storage."
+            }]

@@ -134,7 +134,7 @@ def deduplicate_insights(insights: List[Dict], similarity_threshold: float = 0.8
     for insight in insights:
         is_duplicate = False
         for unique in unique_insights:
-            similarity = _calculate_similarity(insight['text'], unique['text'])
+            similarity = _calculate_similarity(insight['explanation'], unique['explanation'])
             if similarity > similarity_threshold:
                 is_duplicate = True
                 break

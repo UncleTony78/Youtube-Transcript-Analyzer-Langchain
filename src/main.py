@@ -2,45 +2,71 @@
 Main interface for the YouTube Video Insight Engine.
 Provides high-level functions for video analysis and interaction.
 """
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
 
-from typing import Dict, Any, List
+from typing import Dict, Any
+from dotenv import load_dotenv
+import os
+import json
+from datetime import datetime
+
 from insight_engine import VideoInsightEngine
 from transcript_service import YouTubeService
 from analysis_utils import format_timestamp, deduplicate_insights
-import json
 
 class VideoAnalyzer:
     def __init__(self):
         """Initialize the video analyzer with required services."""
+        load_dotenv()
         self.youtube_service = YouTubeService()
         self.insight_engine = VideoInsightEngine()
         self.current_video_data = None
+        self.current_video_metadata = None
 
     def analyze_video(self, video_url: str) -> Dict[str, Any]:
         """
-        Perform comprehensive analysis of a YouTube video.
+        Analyze a YouTube video and generate insights.
         
         Args:
-            video_url: URL of the YouTube video
+            video_url: URL of the YouTube video to analyze
             
         Returns:
-            Dictionary containing analysis results
+            Dict containing analysis results
         """
-        # Get video data
-        self.current_video_data = self.youtube_service.get_video_data(video_url)
+        print("\nProcessing video... This may take a few moments.\n")
         
-        # Store in vector database
-        self.insight_engine.store_video_content(self.current_video_data)
-        
-        # Perform analysis
-        analysis_results = {
-            "metadata": self.current_video_data['metadata'],
-            "golden_nuggets": self.insight_engine.extract_golden_nuggets(self.current_video_data),
-            "summary": self.insight_engine.generate_comprehensive_summary(self.current_video_data),
-            "fact_checks": self.insight_engine.fact_check_content(self.current_video_data)
-        }
-        
-        return self._format_analysis_results(analysis_results)
+        try:
+            # Get video data
+            video_data = self.youtube_service.get_video_data(video_url)
+            if not video_data:
+                raise ValueError(f"Could not fetch video data for URL: {video_url}")
+                
+            self.current_video_data = video_data['transcript']
+            self.current_video_metadata = video_data['metadata']
+            self.current_video_metadata.update({
+                'url': video_url,
+                'analysis_timestamp': datetime.now().isoformat()
+            })
+            
+            # Store in vector database
+            self.insight_engine.store_video_content(self.current_video_data, self.current_video_metadata)
+            
+            # Generate insights
+            insights = self.insight_engine.generate_insights(self.current_video_data)
+            
+            # Format results
+            results = {
+                'metadata': self.current_video_metadata,
+                'insights': deduplicate_insights(insights)
+            }
+            
+            return results
+            
+        except Exception as e:
+            print(f"\nError analyzing video: {str(e)}\n")
+            raise
 
     def chat_with_video(self, question: str) -> str:
         """
@@ -72,7 +98,7 @@ class VideoAnalyzer:
         if not self.current_video_data:
             raise ValueError("No video has been analyzed yet. Please analyze a video first.")
         
-        transcript = self.current_video_data['transcript']
+        transcript = self.current_video_data
         relevant_segments = []
         
         for segment in transcript:
@@ -97,7 +123,10 @@ class VideoAnalyzer:
             raise ValueError("No video has been analyzed yet. Please analyze a video first.")
         
         with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(self._format_analysis_results(self.current_video_data), f, indent=2)
+            json.dump({
+                'metadata': self.current_video_metadata,
+                'insights': deduplicate_insights(self.insight_engine.generate_insights(self.current_video_data))
+            }, f, indent=2)
 
     def _format_analysis_results(self, results: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -127,22 +156,8 @@ class VideoAnalyzer:
 
 # Example usage
 if __name__ == "__main__":
+    # Example: Using a TED Talk about AI
+    video_url = "https://www.youtube.com/watch?v=aircAruvnKk"  # 3Blue1Brown Neural Networks video
     analyzer = VideoAnalyzer()
-    
-    # Analyze a video
-    video_url = "https://www.youtube.com/watch?v=example"
     results = analyzer.analyze_video(video_url)
-    
-    # Print analysis results
-    print("Video Analysis Results:")
     print(json.dumps(results, indent=2))
-    
-    # Chat with the video
-    response = analyzer.chat_with_video("What are the main points discussed?")
-    print("\nChat Response:")
-    print(response)
-    
-    # Get context for a specific timestamp
-    context = analyzer.get_segment_context(120)  # Get context at 2 minutes
-    print("\nContext at 2:00:")
-    print(context['context'])
