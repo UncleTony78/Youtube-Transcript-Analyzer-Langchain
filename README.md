@@ -17,6 +17,9 @@
 - **Multi-Language Support**: Auto-translation to English
 - **Google's Generative AI**: Powered by Gemini Pro
 - **LangSmith Integration**: Advanced monitoring and tracing
+- **Multi-Format Export**: Export results in CSV, JSON, and PDF formats
+- **Email Integration**: Automatically send results via email with attachments
+- **Automated Reports**: Generate professional PDF reports with insights
 
 ## Getting Started
 
@@ -32,6 +35,27 @@
    - Google API key (for Gemini Pro)
    - LangChain API key
    - Pinecone API key
+   - Email configuration (for sending results)
+
+### Email Configuration
+
+To enable email functionality:
+
+1. Copy `.env.example` to `.env`
+2. Configure your email settings in `.env`:
+   ```env
+   SMTP_SERVER=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USERNAME=your_email@gmail.com
+   SMTP_PASSWORD=your_app_specific_password
+   SENDER_EMAIL=your_email@gmail.com
+   RECIPIENT_EMAIL=recipient@example.com
+   ```
+
+3. If using Gmail:
+   - Enable 2-Step Verification in your Google Account
+   - Generate an App Password: Google Account → Security → 2-Step Verification → App Passwords
+   - Use the generated App Password in your `.env` file
 
 ### Installation
 

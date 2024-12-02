@@ -1,7 +1,6 @@
 google-generativeai>=0.3.0
 youtube-transcript-api>=0.6.1
 google-api-python-client>=2.108.0
-python-dotenv>=1.0.0
 langchain>=0.1.0
 langsmith>=0.0.69
 textblob>=0.17.1
@@ -12,3 +11,8 @@ mypy>=1.7.1
 ruff>=0.1.6
 pinecone-client>=2.2.4
 flake8>=6.1.0
+# Export Dependencies
+pandas>=2.0.0
+fpdf2>=2.7.5
+secure-smtplib>=0.1.1
+email-validator>=2.1.0
