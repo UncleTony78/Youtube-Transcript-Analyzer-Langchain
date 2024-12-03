@@ -11,8 +11,6 @@ develop-eggs/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
@@ -54,7 +52,9 @@ Thumbs.db
 # Backend specific
 /dist/
 /build/
+/lib/
 
-# Keep frontend builds
+# Keep frontend builds and lib
 !/frontend/dist/
 !/frontend/build/
+!/frontend/src/lib/
