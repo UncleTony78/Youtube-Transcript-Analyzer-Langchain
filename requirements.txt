@@ -19,3 +19,7 @@ pandas>=2.0.0
 fpdf2>=2.7.5
 secure-smtplib>=0.1.1
 email-validator>=2.1.0
+# API Dependencies
+fastapi>=0.104.1
+uvicorn>=0.24.0
+python-multipart>=0.0.6
