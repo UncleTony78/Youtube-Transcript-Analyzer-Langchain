@@ -6,7 +6,7 @@ import { Loader2, Download } from "lucide-react"
 import { AnalysisTabs } from "./analysis/analysis-tabs"
 import { analyzeVideo, exportAnalysis } from "@/lib/api"
 import { useToast } from "@/components/ui/use-toast"
-import type { AnalysisResults, ExportFormat } from "@/lib/types"
+import type { AnalysisResults, ExportFormat, TranscriptSegment } from "@/lib/types"
 
 export function VideoInput() {
   const { toast } = useToast()
@@ -39,7 +39,15 @@ export function VideoInput() {
 
     try {
       const results = await analyzeVideo(url)
-      setAnalysisData(results)
+      const transcript = results.transcript?.map(segment => {
+        if (typeof segment === 'string') return { text: segment, timestamp: '' } as TranscriptSegment;
+        return { text: '', timestamp: '' } as TranscriptSegment;
+      }) || [];
+      const analysisResults: AnalysisResults = {
+        ...results,
+        transcript
+      };
+      setAnalysisData(analysisResults);
       toast({
         title: "Analysis Complete",
         description: "Video analysis has been completed successfully.",
@@ -62,14 +70,8 @@ export function VideoInput() {
     setExporting(true)
     try {
       const blob = await exportAnalysis(videoId, format)
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = format.filename
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
       
       toast({
         title: "Export Complete",
@@ -126,14 +128,14 @@ export function VideoInput() {
         </CardContent>
       </Card>
 
-      {analysisData && videoId && (
+      {videoId && (
         <>
           <div className="flex justify-end space-x-2 max-w-4xl mx-auto">
             <Button
               variant="outline"
               size="sm"
               onClick={() => handleExport({ type: "pdf", filename: `analysis_${videoId}.pdf` })}
-              disabled={exporting}
+              disabled={exporting || !analysisData}
             >
               <Download className="mr-2 h-4 w-4" />
               Export PDF
@@ -142,13 +144,13 @@ export function VideoInput() {
               variant="outline"
               size="sm"
               onClick={() => handleExport({ type: "txt", filename: `analysis_${videoId}.txt` })}
-              disabled={exporting}
+              disabled={exporting || !analysisData}
             >
               <Download className="mr-2 h-4 w-4" />
               Export TXT
             </Button>
           </div>
-          <AnalysisTabs videoId={videoId} analysisData={analysisData} />
+          <AnalysisTabs videoId={videoId} analysisData={analysisData} loading={loading} />
         </>
       )}
     </div>
