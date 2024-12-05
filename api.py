@@ -1,12 +1,25 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from typing import List
+from typing import List, Dict, Any, Optional
 import os
 from src.main import VideoAnalyzer
 from src.export_service import ExportService
 from datetime import datetime
+import ssl
+import urllib3
+from urllib3.exceptions import InsecureRequestWarning
+import asyncio
+from functools import lru_cache
+
+# Configure SSL context
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
+
+# Suppress only the single InsecureRequestWarning
+urllib3.disable_warnings(InsecureRequestWarning)
 
 app = FastAPI(title="YouTube Transcript Analysis API")
 
@@ -23,6 +36,9 @@ app.add_middleware(
 analyzer = VideoAnalyzer()
 export_service = ExportService()
 
+# Cache for analysis results
+analysis_cache = {}
+
 class VideoRequest(BaseModel):
     video_url: str
 
@@ -35,11 +51,126 @@ class ExportRequest(BaseModel):
     video_id: str
     format: str
 
-@app.post("/analyze")
-async def analyze_video(request: VideoRequest):
+class AnalysisResponse(BaseModel):
+    metadata: Optional[Dict[str, Any]] = None
+    transcript: Optional[List[Dict[str, Any]]] = None
+    keyPoints: Optional[List[str]] = None
+    sentiment: Optional[Dict[str, Any]] = None
+    summary: Optional[str] = None
+
+@app.post("/transcript")
+async def get_transcript(request: VideoRequest):
     try:
-        results = analyzer.analyze_video(request.video_url)
+        results = analyzer.get_transcript(request.video_url)
         return results
+    except Exception as e:
+        error_msg = str(e)
+        if "EOF occurred in violation of protocol" in error_msg:
+            error_msg = "Connection error while fetching video data. Please try again."
+        raise HTTPException(status_code=500, detail=error_msg)
+
+@app.post("/analyze/quick")
+async def quick_analysis(request: VideoRequest) -> AnalysisResponse:
+    """Quick initial analysis returning transcript and metadata."""
+    try:
+        # Check cache first
+        if request.video_url in analysis_cache:
+            cached_data = analysis_cache[request.video_url]
+            return AnalysisResponse(
+                metadata=cached_data.get('metadata'),
+                transcript=cached_data.get('transcript')
+            )
+
+        # Get fresh data
+        result = analyzer.get_transcript(request.video_url)
+        
+        # Cache the result
+        if request.video_url not in analysis_cache:
+            analysis_cache[request.video_url] = {}
+        analysis_cache[request.video_url].update({
+            'metadata': result['metadata'],
+            'transcript': result['transcript']
+        })
+        
+        return AnalysisResponse(
+            metadata=result['metadata'],
+            transcript=result['transcript']
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/analyze/sentiment")
+async def analyze_sentiment(request: VideoRequest) -> AnalysisResponse:
+    """Analyze sentiment separately."""
+    try:
+        # Check cache first
+        if request.video_url in analysis_cache and 'sentiment' in analysis_cache[request.video_url]:
+            return AnalysisResponse(sentiment=analysis_cache[request.video_url]['sentiment'])
+
+        # Get sentiment analysis
+        sentiment = await asyncio.to_thread(analyzer.analyze_sentiment, request.video_url)
+        
+        # Cache the result
+        if request.video_url not in analysis_cache:
+            analysis_cache[request.video_url] = {}
+        analysis_cache[request.video_url]['sentiment'] = sentiment
+        
+        return AnalysisResponse(sentiment=sentiment)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/analyze/keypoints")
+async def analyze_keypoints(request: VideoRequest) -> AnalysisResponse:
+    """Analyze key points separately."""
+    try:
+        # Check cache first
+        if request.video_url in analysis_cache and 'keyPoints' in analysis_cache[request.video_url]:
+            return AnalysisResponse(keyPoints=analysis_cache[request.video_url]['keyPoints'])
+
+        # Get key points analysis
+        key_points = await asyncio.to_thread(analyzer.extract_key_points, request.video_url)
+        
+        # Cache the result
+        if request.video_url not in analysis_cache:
+            analysis_cache[request.video_url] = {}
+        analysis_cache[request.video_url]['keyPoints'] = key_points
+        
+        return AnalysisResponse(keyPoints=key_points)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Keep the original analyze endpoint for compatibility
+@app.post("/analyze")
+async def analyze_video(request: VideoRequest) -> AnalysisResponse:
+    """Full analysis endpoint that coordinates all analysis tasks."""
+    try:
+        # Check complete cache first
+        if request.video_url in analysis_cache and len(analysis_cache[request.video_url].keys()) >= 4:
+            return AnalysisResponse(**analysis_cache[request.video_url])
+
+        # Run all analyses in parallel
+        quick_result = await quick_analysis(request)
+        sentiment_task = asyncio.create_task(analyze_sentiment(request))
+        keypoints_task = asyncio.create_task(analyze_keypoints(request))
+        
+        # Wait for all tasks to complete
+        sentiment_result, keypoints_result = await asyncio.gather(
+            sentiment_task,
+            keypoints_task
+        )
+        
+        # Combine all results
+        final_result = {
+            'metadata': quick_result.metadata,
+            'transcript': quick_result.transcript,
+            'sentiment': sentiment_result.sentiment,
+            'keyPoints': keypoints_result.keyPoints
+        }
+        
+        # Cache the complete result
+        analysis_cache[request.video_url] = final_result
+        
+        return AnalysisResponse(**final_result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -52,6 +183,8 @@ async def chat(request: ChatRequest):
             request.history
         )
         return {"response": response}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

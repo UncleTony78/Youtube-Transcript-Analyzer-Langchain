@@ -27,11 +27,21 @@ export interface SentimentData {
   segments: SentimentSegment[]
 }
 
+export interface VideoMetadata {
+  title?: string;
+  duration?: string;
+  resolution?: string;
+  format?: string;
+  videoId?: string;
+}
+
 export interface AnalysisResults {
+  metadata?: VideoMetadata;
   transcript?: TranscriptSegment[]
-  keyPoints?: string[]
+  keyPoints?: KeyPoint[]
   sentiment?: SentimentData
   summary?: string
+  insights?: any[]; 
 }
 
 export interface ExportFormat {

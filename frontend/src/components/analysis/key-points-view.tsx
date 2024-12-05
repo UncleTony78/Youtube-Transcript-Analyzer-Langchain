@@ -1,9 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
+import type { KeyPoint } from "@/lib/types"
 
 interface KeyPointsViewProps {
-  keyPoints?: string[]
+  keyPoints?: KeyPoint[]
   loading?: boolean
 }
 
@@ -60,7 +61,21 @@ export function KeyPointsView({ keyPoints, loading }: KeyPointsViewProps) {
           <ul className="list-disc list-inside space-y-4">
             {keyPoints.map((point, index) => (
               <li key={index} className="text-sm">
-                {point}
+                {point.text}
+                <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${
+                  point.importance === 'high' 
+                    ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                    : point.importance === 'medium'
+                    ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                    : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                }`}>
+                  {point.importance}
+                </span>
+                {point.category && (
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    {point.category}
+                  </span>
+                )}
               </li>
             ))}
           </ul>

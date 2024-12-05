@@ -286,18 +286,16 @@ class VideoInsightEngine:
         # Combine transcript segments into full text
         full_text = " ".join([segment['text'] for segment in transcript])
         
-        # Create prompt for insight generation
+        # Create prompt template
         prompt = PromptTemplate(
-            template="""You are an AI trained to analyze video transcripts and extract valuable insights.
-            
-            Analyze this transcript and identify the key insights:
-            
+            template="""Analyze this video transcript and identify the key insights:
+
             {text}
             
-            Generate 3-5 key insights. For each insight, provide:
-            1. A clear and concise title
-            2. A detailed explanation
-            3. Why it's important or valuable
+            Consider:
+            1. The main topics and themes
+            2. Key takeaways and lessons
+            3. Important quotes or statements
             4. The relevant context from the transcript
             
             Format your response as a JSON array of objects with these fields:
@@ -310,15 +308,15 @@ class VideoInsightEngine:
             input_variables=["text"]
         )
         
-        # Create chain for insight generation
-        chain = LLMChain(llm=self.llm, prompt=prompt)
+        # Create chain using the new pattern
+        chain = prompt | self.llm
         
-        # Generate insights
-        response = chain.run(text=full_text)
+        # Generate insights using invoke
+        response = chain.invoke({"text": full_text})
         
         # Clean and parse response
         try:
-            cleaned_response = self._clean_json_response(response)
+            cleaned_response = self._clean_json_response(response.content)
             insights = json.loads(cleaned_response)
             return insights
         except json.JSONDecodeError:

@@ -6,7 +6,7 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
-from typing import Dict, Any
+from typing import Dict, Any, List
 from dotenv import load_dotenv
 import os
 import json
@@ -24,21 +24,15 @@ class VideoAnalyzer:
         self.insight_engine = VideoInsightEngine()
         self.current_video_data = None
         self.current_video_metadata = None
+        self._cache = {}
 
-    def analyze_video(self, video_url: str) -> Dict[str, Any]:
-        """
-        Analyze a YouTube video and generate insights.
-        
-        Args:
-            video_url: URL of the YouTube video to analyze
-            
-        Returns:
-            Dict containing analysis results
-        """
-        print("\nProcessing video... This may take a few moments.\n")
-        
+    def get_transcript(self, video_url: str) -> Dict[str, Any]:
+        """Fetch just the transcript and metadata for a video."""
         try:
-            # Get video data
+            # Check cache first
+            if video_url in self._cache and 'transcript' in self._cache[video_url]:
+                return self._cache[video_url]
+
             video_data = self.youtube_service.get_video_data(video_url)
             if not video_data:
                 raise ValueError(f"Could not fetch video data for URL: {video_url}")
@@ -50,30 +44,70 @@ class VideoAnalyzer:
                 'analysis_timestamp': datetime.now().isoformat()
             })
             
-            # Store in vector database
-            self.insight_engine.store_video_content(self.current_video_data, self.current_video_metadata)
-            
-            # Generate insights
-            insights = self.insight_engine.generate_insights(self.current_video_data)
-            
-            # Format results
-            results = {
-                'metadata': self.current_video_metadata,
-                'insights': deduplicate_insights(insights)
+            result = {
+                'transcript': self.current_video_data,
+                'metadata': self.current_video_metadata
             }
-            
-            return results
-            
-        except Exception as e:
-            print(f"\nError analyzing video: {str(e)}\n")
-            raise
 
-    def chat_with_video(self, question: str) -> str:
+            # Cache the result
+            if video_url not in self._cache:
+                self._cache[video_url] = {}
+            self._cache[video_url].update(result)
+            
+            return result
+        except Exception as e:
+            raise ValueError(f"Error fetching transcript: {str(e)}")
+
+    def analyze_sentiment(self, video_url: str) -> Dict[str, Any]:
+        """Analyze sentiment separately for faster processing."""
+        try:
+            # Ensure we have the transcript
+            if not self.current_video_data:
+                self.get_transcript(video_url)
+
+            # Process sentiment analysis
+            return self.insight_engine.analyze_sentiment(self.current_video_data)
+        except Exception as e:
+            raise ValueError(f"Error analyzing sentiment: {str(e)}")
+
+    def extract_key_points(self, video_url: str) -> List[str]:
+        """Extract key points separately for faster processing."""
+        try:
+            # Ensure we have the transcript
+            if not self.current_video_data:
+                self.get_transcript(video_url)
+
+            # Extract key points
+            return self.insight_engine.extract_key_points(self.current_video_data)
+        except Exception as e:
+            raise ValueError(f"Error extracting key points: {str(e)}")
+
+    def analyze_video(self, video_url: str) -> Dict[str, Any]:
+        """Full video analysis (kept for compatibility)."""
+        try:
+            # Get transcript first
+            transcript_data = self.get_transcript(video_url)
+            
+            # Run analyses
+            sentiment = self.analyze_sentiment(video_url)
+            key_points = self.extract_key_points(video_url)
+            
+            return {
+                'metadata': transcript_data['metadata'],
+                'transcript': transcript_data['transcript'],
+                'sentiment': sentiment,
+                'keyPoints': key_points
+            }
+        except Exception as e:
+            raise ValueError(f"Error during video analysis: {str(e)}")
+
+    def chat_with_video(self, question: str, history: list = None) -> str:
         """
         Interactive chat about the video content.
         
         Args:
             question: User's question about the video
+            history: Optional list of previous chat messages
             
         Returns:
             AI-generated response
@@ -82,7 +116,10 @@ class VideoAnalyzer:
             raise ValueError("No video has been analyzed yet. Please analyze a video first.")
         
         chat_interface = self.insight_engine.create_chat_interface()
-        return chat_interface({"question": question})
+        return chat_interface({
+            "question": question,
+            "history": history or []
+        })
 
     def get_segment_context(self, timestamp: float, context_window: int = 30) -> Dict[str, Any]:
         """
