@@ -7,14 +7,61 @@ class APIError extends Error {
     super(message);
     this.name = 'APIError';
   }
+
+  static isRateLimitError(error: any): boolean {
+    return (
+      error.message?.toLowerCase().includes('rate limit exceeded') ||
+      error.code === '429' ||
+      error.status === 429
+    );
+  }
 }
 
 // Add cache for analysis results
 const analysisCache = new Map<string, Partial<AnalysisResults>>();
 
+// Utility function for delay
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Generic fetch with retry logic
+async function fetchWithRetry<T>(
+  url: string,
+  options: RequestInit,
+  maxRetries: number = 3
+): Promise<T> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        const error = await response.json();
+        if (error.message?.toLowerCase().includes('rate limit exceeded')) {
+          throw new APIError('RATE_LIMIT', error.message || 'Rate limit exceeded');
+        }
+        throw new APIError(response.status.toString(), error.detail || 'API request failed');
+      }
+      return await response.json();
+    } catch (err: any) {
+      lastError = err;
+      if (err instanceof APIError && err.code === 'RATE_LIMIT') {
+        // For rate limit errors, wait longer
+        const waitTime = Math.min(1000 * Math.pow(2, attempt), 60000); // Max 1 minute
+        console.log(`Rate limit hit, waiting ${waitTime}ms before retry...`);
+        await delay(waitTime);
+      } else {
+        // For other errors, use shorter delays
+        await delay(1000 * Math.pow(2, attempt));
+      }
+    }
+  }
+  
+  throw lastError || new Error('Request failed after retries');
+}
+
 export async function getTranscript(videoUrl: string) {
   console.log('Calling getTranscript API...', videoUrl);
-  const response = await fetch(`${API_BASE_URL}/transcript`, {
+  const response = await fetchWithRetry(`${API_BASE_URL}/transcript`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -22,17 +69,8 @@ export async function getTranscript(videoUrl: string) {
     body: JSON.stringify({ video_url: videoUrl }),
   });
 
-  console.log('Transcript API response status:', response.status);
-  
-  if (!response.ok) {
-    const error = await response.json();
-    console.error('Transcript API error:', error);
-    throw new Error(error.detail || 'Failed to fetch transcript');
-  }
-
-  const data = await response.json();
-  console.log('Transcript API response data:', data);
-  return data;
+  console.log('Transcript API response data:', response);
+  return response;
 }
 
 export async function analyzeVideo(
@@ -51,7 +89,7 @@ export async function analyzeVideo(
 
   try {
     // Start with quick analysis
-    const quickResponse = await fetch(`${API_BASE_URL}/analyze/quick`, {
+    const quickResponse = await fetchWithRetry(`${API_BASE_URL}/analyze/quick`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -59,22 +97,17 @@ export async function analyzeVideo(
       body: JSON.stringify({ video_url: videoUrl }),
     });
 
-    if (!quickResponse.ok) {
-      throw new APIError('QUICK_ANALYSIS_FAILED', 'Failed to get quick analysis');
-    }
-
-    const quickData = await quickResponse.json();
     onProgress?.(30);
-    onPartialResults?.(quickData);
+    onPartialResults?.(quickResponse);
 
     // Start detailed analysis in parallel
     const [sentimentPromise, keyPointsPromise] = await Promise.all([
-      fetch(`${API_BASE_URL}/analyze/sentiment`, {
+      fetchWithRetry(`${API_BASE_URL}/analyze/sentiment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ video_url: videoUrl }),
       }),
-      fetch(`${API_BASE_URL}/analyze/keypoints`, {
+      fetchWithRetry(`${API_BASE_URL}/analyze/keypoints`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ video_url: videoUrl }),
@@ -84,14 +117,14 @@ export async function analyzeVideo(
     onProgress?.(60);
 
     const [sentimentData, keyPointsData] = await Promise.all([
-      sentimentPromise.json(),
-      keyPointsPromise.json()
+      sentimentPromise,
+      keyPointsPromise
     ]);
 
     onProgress?.(90);
 
     const finalResults = {
-      ...quickData,
+      ...quickResponse,
       ...sentimentData,
       ...keyPointsData,
     };
@@ -114,7 +147,7 @@ export async function chatWithVideo(
 ): Promise<string> {
   console.log('Calling chatWithVideo API...', videoId, message);
   try {
-    const response = await fetch(`${API_BASE_URL}/chat`, {
+    const response = await fetchWithRetry(`${API_BASE_URL}/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -129,17 +162,8 @@ export async function chatWithVideo(
       }),
     });
 
-    console.log('Chat API response status:', response.status);
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Chat API error:', error);
-      throw new APIError(error.code || 'UNKNOWN_ERROR', error.message || 'Failed to get chat response');
-    }
-
-    const data = await response.json();
-    console.log('Chat API response data:', data);
-    return data.response;
+    console.log('Chat API response data:', response);
+    return response.response;
   } catch (error) {
     console.error('Chat API catch block error:', error);
     if (error instanceof APIError) {
@@ -155,7 +179,7 @@ export async function exportAnalysis(
 ): Promise<Blob> {
   console.log('Calling exportAnalysis API...', videoId, format);
   try {
-    const response = await fetch(`${API_BASE_URL}/export`, {
+    const response = await fetchWithRetry(`${API_BASE_URL}/export`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -164,19 +188,10 @@ export async function exportAnalysis(
         video_id: videoId,
         format: format.type,
       }),
-    });
+    }, 1); // Set max retries to 1 for export API
 
-    console.log('Export API response status:', response.status);
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Export API error:', error);
-      throw new APIError(error.code || 'UNKNOWN_ERROR', error.message || 'Failed to export analysis');
-    }
-
-    const data = await response.blob();
-    console.log('Export API response data:', data);
-    return data;
+    console.log('Export API response data:', response);
+    return response;
   } catch (error) {
     console.error('Export API catch block error:', error);
     if (error instanceof APIError) {

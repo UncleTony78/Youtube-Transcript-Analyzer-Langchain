@@ -8,6 +8,19 @@ import { analyzeVideo, exportAnalysis, getTranscript } from "@/lib/api"
 import { useToast } from "@/components/ui/use-toast"
 import type { AnalysisResults, ExportFormat } from "@/lib/types"
 
+// Define the interface for transcript data
+interface TranscriptData {
+  metadata: any; 
+  transcript: TranscriptSegment[];
+}
+
+interface TranscriptSegment {
+  text: string;
+  start: number;
+  end: number;
+  timestamp: number; // Add timestamp property here
+}
+
 export function VideoInput() {
   const { toast } = useToast()
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
@@ -27,7 +40,7 @@ export function VideoInput() {
     try {
       // Get transcript first
       console.log('Fetching transcript...');
-      const transcriptData = await getTranscript(videoUrl);
+      const transcriptData: TranscriptData = await getTranscript(videoUrl) as TranscriptData;
       console.log('Transcript response:', transcriptData);
       
       if (!transcriptData) {
@@ -37,7 +50,7 @@ export function VideoInput() {
       // Set initial state with transcript data
       const initialResults = {
         metadata: transcriptData.metadata,
-        transcript: transcriptData.transcript,
+        transcript: transcriptData.transcript.map((segment, index) => ({ ...segment, start: index === 0 ? 0 : transcriptData.transcript[index - 1].end, timestamp: index.toString() })),
         insights: [],
         keyPoints: [],
         sentiment: undefined,
@@ -64,13 +77,17 @@ export function VideoInput() {
         }
       );
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error during analysis:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      if (err.message?.toLowerCase().includes('rate limit exceeded')) {
+        setError('OpenAI rate limit reached. Please try again in about an hour.');
+      } else {
+        setError(err.message || 'An error occurred during analysis');
+      }
       toast({
         variant: "destructive",
         title: "Analysis Failed",
-        description: err instanceof Error ? err.message : "Failed to analyze video",
+        description: err.message || "Failed to analyze video",
       })
     } finally {
       setIsLoadingTranscript(false);

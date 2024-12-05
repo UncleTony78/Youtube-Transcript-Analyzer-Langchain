@@ -12,6 +12,7 @@ import urllib3
 from urllib3.exceptions import InsecureRequestWarning
 import asyncio
 from functools import lru_cache
+import openai
 
 # Configure SSL context
 ssl_context = ssl.create_default_context()
@@ -58,6 +59,23 @@ class AnalysisResponse(BaseModel):
     sentiment: Optional[Dict[str, Any]] = None
     summary: Optional[str] = None
 
+class RateLimitException(HTTPException):
+    def __init__(self, detail: str):
+        super().__init__(
+            status_code=429,
+            detail=detail
+        )
+
+def handle_openai_error(func):
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except openai.error.RateLimitError as e:
+            raise RateLimitException(detail=str(e))
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    return wrapper
+
 @app.post("/transcript")
 async def get_transcript(request: VideoRequest):
     try:
@@ -100,6 +118,7 @@ async def quick_analysis(request: VideoRequest) -> AnalysisResponse:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/analyze/sentiment")
+@handle_openai_error
 async def analyze_sentiment(request: VideoRequest) -> AnalysisResponse:
     """Analyze sentiment separately."""
     try:
@@ -120,6 +139,7 @@ async def analyze_sentiment(request: VideoRequest) -> AnalysisResponse:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/analyze/keypoints")
+@handle_openai_error
 async def analyze_keypoints(request: VideoRequest) -> AnalysisResponse:
     """Analyze key points separately."""
     try:
@@ -175,6 +195,7 @@ async def analyze_video(request: VideoRequest) -> AnalysisResponse:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/chat")
+@handle_openai_error
 async def chat(request: ChatRequest):
     try:
         response = analyzer.chat_with_video(
