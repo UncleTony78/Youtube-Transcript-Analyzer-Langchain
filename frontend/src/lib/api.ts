@@ -1,4 +1,4 @@
-import { AnalysisResults, ChatMessage, ExportFormat, AnalysisError } from './types';
+import { AnalysisResults, ChatMessage, ExportFormat } from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -24,7 +24,11 @@ export async function analyzeVideo(videoUrl: string): Promise<AnalysisResults> {
       throw new APIError(error.code || 'UNKNOWN_ERROR', error.message || 'Failed to analyze video');
     }
 
-    return await response.json();
+    const data = await response.json();
+    return {
+      ...data,
+      keyPoints: data.keyPoints?.map((kp: { text: string }) => kp.text),
+    };
   } catch (error) {
     if (error instanceof APIError) {
       throw error;

@@ -1,15 +1,10 @@
-import { useState } from 'react'
 import { ThemeProvider } from "@/components/theme-provider"
 import { MainNav } from "@/components/layout/main-nav"
 import { VideoInput } from "@/components/video-input"
 import { Toaster } from "@/components/ui/toaster"
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
     <ThemeProvider defaultTheme="system" storageKey="yt-insight-theme">
       <div className="min-h-screen bg-background font-sans antialiased">

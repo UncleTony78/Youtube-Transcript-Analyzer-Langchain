@@ -12,9 +12,21 @@ interface SentimentViewProps {
       timestamp: string
     }>
   }
+  loading?: boolean
 }
 
-export function SentimentView({ sentimentData }: SentimentViewProps) {
+export function SentimentView({ sentimentData, loading }: SentimentViewProps) {
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Sentiment Analysis</CardTitle>
+        </CardHeader>
+        <CardContent>Loading sentiment analysis...</CardContent>
+      </Card>
+    )
+  }
+
   if (!sentimentData) {
     return (
       <Card>

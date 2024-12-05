@@ -1,7 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List
+import os
 from src.main import VideoAnalyzer
 from src.export_service import ExportService
 from datetime import datetime
@@ -67,6 +69,22 @@ async def export_analysis(request: ExportRequest):
             raise HTTPException(status_code=400, detail="Unsupported export format")
             
         return {"file_path": file_path}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/download/{file_path:path}")
+async def download_file(file_path: str):
+    try:
+        # Ensure the file path is within our exports directory
+        full_path = os.path.join("exports", file_path)
+        if not os.path.exists(full_path):
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        return FileResponse(
+            path=full_path,
+            filename=os.path.basename(file_path),
+            media_type="application/octet-stream"
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

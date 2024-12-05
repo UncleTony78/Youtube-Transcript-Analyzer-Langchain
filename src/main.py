@@ -12,9 +12,9 @@ import os
 import json
 from datetime import datetime
 
-from insight_engine import VideoInsightEngine
-from transcript_service import YouTubeService
-from analysis_utils import format_timestamp, deduplicate_insights
+from .insight_engine import VideoInsightEngine
+from .transcript_service import YouTubeService
+from .analysis_utils import format_timestamp, deduplicate_insights
 
 class VideoAnalyzer:
     def __init__(self):
